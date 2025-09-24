@@ -1,0 +1,78 @@
+{% extends 'consultarRutasBodega/base.html' %}
+
+{% block title %}Ver Objetos - Sistema de Rutas{% endblock %}
+
+{% block header %}Objetos Disponibles{% endblock %}
+
+{% block content %}
+    <h2>Objetos en el Sistema</h2>
+    <p>A continuación se muestran los objetos disponibles para consulta de rutas (conectados con AWS):</p>
+    
+    {% if objetos %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Objeto</th>
+                    <th>Descripción</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for objeto in objetos %}
+                <tr>
+                    <td>{{ objeto.id }}</td>
+                    <td>{{ objeto.objeto|title }}</td>
+                    <td>{{ objeto.descripcion }}</td>
+                    <td>
+                        <button style="padding: 5px 10px; background-color: #27ae60; color: white; border: none; border-radius: 3px; cursor: pointer;" 
+                                onclick="seleccionarObjeto('{{ objeto.objeto }}')">
+                            Usar en Búsqueda
+                        </button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        
+        <div style="margin-top: 30px; padding: 15px; background-color: #d5edda; border: 1px solid #c3e6cb; border-radius: 5px;">
+            <strong>Total de objetos encontrados:</strong> {{ objetos|length }}
+            <br>
+            <small><strong>Nota:</strong> Los datos se obtienen desde AWS. La descripción representa el carácter para la concatenación de rutas.</small>
+        </div>
+        
+        <div style="margin-top: 20px; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+            <strong>💡 Cómo funciona:</strong>
+            <ul>
+                <li>Cada objeto tiene un ID secuencial almacenado en la BD de AWS</li>
+                <li>El "Objeto" es el nombre del item a buscar (ej: zapatos, caja)</li>
+                <li>La "Descripción" muestra el código almacenado en AWS para cada objeto</li>
+                <li>Al buscar rutas, el backend consulta AWS dinámicamente para obtener las descripciones</li>
+                <li>La ruta se forma concatenando las descripciones con "-" (ej: C-Z)</li>
+            </ul>
+        </div>
+    {% else %}
+        <div style="text-align: center; padding: 40px; background-color: #f8d7da; border: 1px solid #f5c6cb; border-radius: 5px;">
+            <h3>No hay objetos disponibles</h3>
+            <p>No se pudieron cargar los objetos desde AWS.</p>
+        </div>
+    {% endif %}
+    
+    <div style="margin-top: 30px;">
+        <a href="{% url 'consultarRutasBodega:buscar_ruta' %}" 
+           style="display: inline-block; padding: 12px 25px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+            🔍 Buscar Ruta entre Objetos
+        </a>
+        <a href="{% url 'consultarRutasBodega:index' %}" 
+           style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px;">
+            ← Volver al Inicio
+        </a>
+    </div>
+    
+    <script>
+        function seleccionarObjeto(objeto) {
+            // Redirigir a la página de búsqueda con el objeto preseleccionado
+            window.location.href = "{% url 'consultarRutasBodega:buscar_ruta' %}?objeto=" + objeto;
+        }
+    </script>
+{% endblock %}

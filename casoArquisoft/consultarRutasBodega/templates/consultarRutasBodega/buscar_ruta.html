@@ -1,0 +1,251 @@
+{% extends 'consultarRutasBodega/base.html' %}
+
+{% block title %}Buscar Ruta - Sistema de Rutas{% endblock %}
+
+{% block header %}Buscar Ruta entre Objetos{% endblock %}
+
+{% block content %}
+    <div style="max-width: 600px; margin: 0 auto;">
+        <h2>Buscar Ruta entre Objetos</h2>
+        <p>Selecciona dos objetos para encontrar la ruta entre ellos. El sistema consultará AWS y concatenará las descripciones.</p>
+        
+        <form method="post" id="buscarForm" style="background-color: #f8f9fa; padding: 30px; border-radius: 8px; margin-top: 20px;">
+            {% csrf_token %}
+            <input type="hidden" name="tiempo_frontend" id="tiempo_frontend" value="0">
+            
+            <div style="margin-bottom: 20px; position: relative;">
+                <label for="objeto1" style="display: block; margin-bottom: 8px; font-weight: bold;">Objeto Origen:</label>
+                <input type="text" name="objeto1" id="objeto1" required autocomplete="off"
+                       placeholder="Escribe el nombre del objeto origen..."
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box;">
+                <div id="sugerencias1" class="sugerencias-container" style="display: none;"></div>
+            </div>
+            
+            <div style="margin-bottom: 20px; position: relative;">
+                <label for="objeto2" style="display: block; margin-bottom: 8px; font-weight: bold;">Objeto Destino:</label>
+                <input type="text" name="objeto2" id="objeto2" required autocomplete="off"
+                       placeholder="Escribe el nombre del objeto destino..."
+                       style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; box-sizing: border-box;">
+                <div id="sugerencias2" class="sugerencias-container" style="display: none;"></div>
+            </div>
+            
+            <!-- Indicador de estado de búsqueda -->
+            <div id="estadoBusqueda" style="display: none; text-align: center; margin: 20px 0; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 5px;">
+                <div style="display: inline-block; margin-right: 10px;">
+                    <div style="border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 20px; height: 20px; animation: spin 1s linear infinite; display: inline-block; vertical-align: middle;"></div>
+                </div>
+                <span id="tiempoTranscurrido">Buscando ruta... <strong>0.0s</strong></span>
+            </div>
+            
+            <div style="text-align: center; margin-top: 30px;">
+                <button type="submit" id="btnBuscar"
+                        style="padding: 15px 30px; background-color: #27ae60; color: white; border: none; border-radius: 5px; font-size: 18px; cursor: pointer;">
+                    🔍 Buscar Ruta
+                </button>
+            </div>
+        </form>
+        
+        <div style="margin-top: 30px; padding: 20px; background-color: #e3f2fd; border: 1px solid #bbdefb; border-radius: 5px;">
+            <h4>🔧 Proceso de Búsqueda:</h4>
+            <ol>
+                <li><strong>GET a AWS:</strong> Se consulta el objeto origen</li>
+                <li><strong>GET a AWS:</strong> Se consulta el objeto destino</li>
+                <li><strong>Concatenación:</strong> Se unen las descripciones con "-"</li>
+                <li><strong>Resultado:</strong> Se muestra la ruta calculada</li>
+            </ol>
+            
+            <p><strong>Ejemplo:</strong> Caja (C) → Zapatos (Z) = <code>C-Z</code></p>
+        </div>
+        
+        <!-- Espacio reservado para la integración con AWS -->
+        <div style="margin-top: 30px; padding: 20px; background-color: #fff8e1; border: 2px dashed #ffb74d; border-radius: 5px;">
+            <h4>⚡ Zona de Integración AWS</h4>
+            <p><strong>TODO:</strong> Aquí se implementarán las peticiones a AWS</p>
+            <ul style="font-family: monospace; font-size: 14px; color: #666;">
+                <li>• boto3.client() - Cliente AWS</li>
+                <li>• GET requests a la BD</li>
+                <li>• Manejo de errores</li>
+                <li>• Cache de resultados</li>
+            </ul>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{% url 'consultarRutasBodega:consultar_rutas' %}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #3498db; color: white; text-decoration: none; border-radius: 3px; margin-right: 10px;">
+                Ver Objetos Disponibles
+            </a>
+            <a href="{% url 'consultarRutasBodega:index' %}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px;">
+                ← Volver al Inicio
+            </a>
+        </div>
+    </div>
+
+    <style>
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .sugerencias-container {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            border-radius: 0 0 4px 4px;
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .sugerencia-item {
+            padding: 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.2s;
+        }
+        
+        .sugerencia-item:hover {
+            background-color: #f8f9fa;
+        }
+        
+        .sugerencia-item:last-child {
+            border-bottom: none;
+        }
+        
+        .sugerencia-highlight {
+            background-color: #e3f2fd;
+            font-weight: bold;
+        }
+    </style>
+
+    <script>
+        let tiempoInicio;
+        let intervaloCronometro;
+        
+        // Preseleccionar objeto si viene en la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const objeto = urlParams.get('objeto');
+        if (objeto) {
+            document.getElementById('objeto1').value = objeto.toLowerCase();
+        }
+        
+        // Sistema de autocompletado
+        function setupAutocompletado(inputId, sugerenciasId) {
+            const input = document.getElementById(inputId);
+            const sugerenciasContainer = document.getElementById(sugerenciasId);
+            let timeoutId;
+            
+            input.addEventListener('input', function() {
+                clearTimeout(timeoutId);
+                const term = this.value.trim();
+                
+                if (term.length < 1) {
+                    sugerenciasContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Debounce la búsqueda
+                timeoutId = setTimeout(() => {
+                    fetch(`{% url 'consultarRutasBodega:obtener_objetos_json' %}?term=${encodeURIComponent(term)}`)
+                        .then(response => response.json())
+                        .then(objetos => {
+                            mostrarSugerencias(objetos, sugerenciasContainer, input);
+                        })
+                        .catch(error => {
+                            console.error('Error al obtener sugerencias:', error);
+                        });
+                }, 300);
+            });
+            
+            // Ocultar sugerencias al hacer clic fuera
+            document.addEventListener('click', function(e) {
+                if (!input.contains(e.target) && !sugerenciasContainer.contains(e.target)) {
+                    sugerenciasContainer.style.display = 'none';
+                }
+            });
+        }
+        
+        function mostrarSugerencias(objetos, container, input) {
+            if (objetos.length === 0) {
+                container.style.display = 'none';
+                return;
+            }
+            
+            container.innerHTML = '';
+            objetos.forEach(objeto => {
+                const item = document.createElement('div');
+                item.className = 'sugerencia-item';
+                item.textContent = objeto.charAt(0).toUpperCase() + objeto.slice(1);
+                
+                item.addEventListener('click', function() {
+                    input.value = objeto;
+                    container.style.display = 'none';
+                    
+                    // Validar que no sean iguales
+                    validarObjetosDiferentes();
+                });
+                
+                container.appendChild(item);
+            });
+            
+            container.style.display = 'block';
+        }
+        
+        function validarObjetosDiferentes() {
+            const objeto1 = document.getElementById('objeto1');
+            const objeto2 = document.getElementById('objeto2');
+            
+            if (objeto1.value && objeto2.value && objeto1.value.toLowerCase() === objeto2.value.toLowerCase()) {
+                alert('Los objetos de origen y destino deben ser diferentes');
+                objeto2.value = '';
+            }
+        }
+        
+        // Configurar autocompletado para ambos campos
+        setupAutocompletado('objeto1', 'sugerencias1');
+        setupAutocompletado('objeto2', 'sugerencias2');
+        
+        // Validar al cambiar manualmente
+        document.getElementById('objeto1').addEventListener('blur', validarObjetosDiferentes);
+        document.getElementById('objeto2').addEventListener('blur', validarObjetosDiferentes);
+        
+        // Manejar el envío del formulario con medición de tiempo
+        document.getElementById('buscarForm').addEventListener('submit', function(e) {
+            // Registrar tiempo de inicio
+            tiempoInicio = performance.now();
+            
+            // Mostrar indicador de carga
+            const estadoBusqueda = document.getElementById('estadoBusqueda');
+            const btnBuscar = document.getElementById('btnBuscar');
+            
+            estadoBusqueda.style.display = 'block';
+            btnBuscar.disabled = true;
+            btnBuscar.style.backgroundColor = '#95a5a6';
+            btnBuscar.innerHTML = '⏳ Buscando...';
+            
+            // Iniciar cronómetro visual
+            let tiempoTranscurrido = 0;
+            intervaloCronometro = setInterval(function() {
+                tiempoTranscurrido = ((performance.now() - tiempoInicio) / 1000).toFixed(1);
+                document.getElementById('tiempoTranscurrido').innerHTML = 
+                    `Buscando ruta... <strong>${tiempoTranscurrido}s</strong>`;
+            }, 50); // Actualizar cada 50ms
+            
+            // Calcular tiempo total cuando se completa la petición
+            const tiempoTotal = performance.now() - tiempoInicio;
+            document.getElementById('tiempo_frontend').value = tiempoTotal.toFixed(2);
+        });
+        
+        // Detener cronómetro cuando la página se está descargando
+        window.addEventListener('beforeunload', function() {
+            if (intervaloCronometro) {
+                clearInterval(intervaloCronometro);
+            }
+        });
+    </script>
+{% endblock %}

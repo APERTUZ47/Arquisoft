@@ -1,0 +1,149 @@
+{% extends 'consultarRutasBodega/base.html' %}
+
+{% block title %}Resultado de Ruta - Sistema de Rutas{% endblock %}
+
+{% block header %}Resultado de Búsqueda de Ruta{% endblock %}
+
+{% block content %}
+    <div style="max-width: 700px; margin: 0 auto;">
+        <h2>Ruta Encontrada</h2>
+        
+        <div style="background-color: #d4edda; border: 1px solid #c3e6cb; border-radius: 8px; padding: 25px; margin: 20px 0;">
+            <div style="text-align: center;">
+                <h3 style="margin: 0; color: #155724;">
+                    <span style="font-size: 24px; font-weight: bold;">{{ objeto1|title }}</span>
+                    <span style="margin: 0 20px; color: #666;">→</span>
+                    <span style="font-size: 24px; font-weight: bold;">{{ objeto2|title }}</span>
+                </h3>
+                
+                <div style="margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 5px; border: 2px solid #28a745;">
+                    <span style="font-size: 32px; font-weight: bold; color: #28a745; font-family: monospace;">
+                        {{ ruta }}
+                    </span>
+                </div>
+                
+                <p style="color: #666; margin: 10px 0;">
+                    Ruta calculada mediante concatenación de descripciones
+                </p>
+            </div>
+        </div>
+        
+        <div style="background-color: #f8f9fa; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h4>📋 Detalles del Proceso:</h4>
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Objeto Origen:</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ objeto1|title }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Objeto Destino:</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd;">{{ objeto2|title }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-weight: bold;">Ruta Generada:</td>
+                    <td style="padding: 8px; border-bottom: 1px solid #ddd; font-family: monospace;">{{ ruta }}</td>
+                </tr>
+                <tr>
+                    <td style="padding: 8px; font-weight: bold;">Estado:</td>
+                    <td style="padding: 8px; color: #28a745;">✅ Ruta encontrada exitosamente</td>
+                </tr>
+            </table>
+        </div>
+        
+        <!-- Información de Rendimiento -->
+        <div style="background-color: #e8f5e8; border: 1px solid #c3e6cb; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h4>⏱️ Métricas de Rendimiento:</h4>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #3498db;">
+                    <h5 style="margin: 0 0 8px 0; color: #2c3e50;">Tiempo Frontend</h5>
+                    {% if tiempo_frontend %}
+                        <span style="font-size: 24px; font-weight: bold; color: #3498db;">{{ tiempo_frontend|floatformat:2 }}ms</span>
+                        <br><small style="color: #666;">Desde envío hasta respuesta</small>
+                    {% else %}
+                        <span style="color: #e74c3c;">No medido</span>
+                    {% endif %}
+                </div>
+                
+                <div style="background-color: white; padding: 15px; border-radius: 5px; border-left: 4px solid #27ae60;">
+                    <h5 style="margin: 0 0 8px 0; color: #2c3e50;">Tiempo Backend</h5>
+                    <span style="font-size: 24px; font-weight: bold; color: #27ae60;">{{ tiempo_backend }}ms</span>
+                    <br><small style="color: #666;">Procesamiento en servidor</small>
+                </div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                <strong>🕐 Timestamps:</strong><br>
+                <small>
+                    <strong>Inicio:</strong> {{ timestamp_inicio }} | 
+                    <strong>Fin:</strong> {{ timestamp_fin }}
+                    {% if tiempo_frontend %}
+                    | <strong>Total percibido:</strong> {{ tiempo_frontend|floatformat:2 }}ms
+                    {% endif %}
+                </small>
+            </div>
+            
+            <div style="margin-top: 10px; padding: 10px; background-color: #fff3cd; border-radius: 5px; border: 1px solid #ffeaa7;">
+                <small><strong>📊 Análisis:</strong>
+                {% if tiempo_frontend and tiempo_backend %}
+                    {% if tiempo_frontend > tiempo_backend %}
+                        El tiempo total incluye latencia de red y renderizado del navegador 
+                        ({{ diferencia_tiempo }}ms adicionales).
+                    {% else %}
+                        Excelente rendimiento de red detectado.
+                    {% endif %}
+                {% else %}
+                    El tiempo backend incluye simulación de procesamiento (100ms) y lógica de negocio.
+                {% endif %}
+                </small>
+            </div>
+        </div>
+        
+        <!-- Espacio para mostrar detalles de AWS cuando se implemente -->
+        <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 20px 0;">
+            <h4>🔍 Información de AWS (Simulado)</h4>
+            <p><strong>Consultas realizadas:</strong></p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 15px 0;">
+                <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                    <strong>GET {{ objeto1|title }}</strong><br>
+                    <small>⏱️ ~{{ tiempo_get_objeto1 }}ms - Descripción obtenida ✅</small>
+                </div>
+                <div style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #ddd;">
+                    <strong>GET {{ objeto2|title }}</strong><br>
+                    <small>⏱️ ~{{ tiempo_get_objeto2 }}ms - Descripción obtenida ✅</small>
+                </div>
+            </div>
+            
+            <p><strong>Proceso de concatenación:</strong></p>
+            <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; font-family: monospace; border: 1px solid #ddd;">
+                <div>1. {{ objeto1|title }} → "{{ ruta|slice:":1" }}" ({{ tiempo_get_objeto1 }}ms)</div>
+                <div>2. {{ objeto2|title }} → "{{ ruta|slice:"2:" }}" ({{ tiempo_get_objeto2 }}ms)</div>
+                <div>3. Concatenación: "{{ ruta|slice:":1" }}" + "-" + "{{ ruta|slice:"2:" }}" = "<strong>{{ ruta }}</strong>" ({{ tiempo_concatenacion }}ms)</div>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background-color: #e8f5e8; border-radius: 4px; border-left: 4px solid #28a745;">
+                <small><strong>💡 Para implementación AWS real:</strong></small>
+                <ul style="font-size: 12px; margin: 5px 0;">
+                    <li>Medición individual de cada consulta GET</li>
+                    <li>Manejo de timeouts y reintentos</li>
+                    <li>Cache de resultados para optimizar rendimiento</li>
+                    <li>Logging detallado de errores y latencias</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <a href="{% url 'consultarRutasBodega:buscar_ruta' %}" 
+               style="display: inline-block; padding: 12px 25px; background-color: #3498db; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+                🔄 Nueva Búsqueda
+            </a>
+            <a href="{% url 'consultarRutasBodega:consultar_rutas' %}" 
+               style="display: inline-block; padding: 12px 25px; background-color: #17a2b8; color: white; text-decoration: none; border-radius: 5px; margin-right: 10px;">
+                📋 Ver Objetos
+            </a>
+            <a href="{% url 'consultarRutasBodega:index' %}" 
+               style="display: inline-block; padding: 10px 20px; background-color: #6c757d; color: white; text-decoration: none; border-radius: 3px;">
+                🏠 Inicio
+            </a>
+        </div>
+    </div>
+{% endblock %}
