@@ -12,6 +12,10 @@ import os
 cache_objetos = {}
 
 
+def inventario_microservicio(request):
+    """Vista para el panel de gestión del microservicio de inventario"""
+    return render(request, 'consultarRutasBodega/inventario_microservicio.html')
+
 def obtener_conexion_mysql():
     """Obtiene conexión a MySQL local en la instancia"""
     try:

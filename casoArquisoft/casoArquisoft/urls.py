@@ -16,7 +16,24 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 
+from django.http import JsonResponse
+from django.utils import timezone
+from django.views import View
+
+class InventoryHealthView(View):
+    def get(self, request):
+        return JsonResponse({
+            'status': 'healthy',
+            'service': 'inventory_microservice',
+            'timestamp': timezone.now().isoformat(),
+            'version': '1.0.0'
+        })
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('consultarRutasBodega.urls')),
+
+    # URLs del microservicio de inventario
+    path('api/inventory/', include('inventory_urls')),
+    path('health/inventory/', InventoryHealthView.as_view(), name='inventory_health'),
 ]

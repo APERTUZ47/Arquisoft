@@ -1,0 +1,583 @@
+{% extends 'consultarRutasBodega/base.html' %}
+
+{% block title %}Panel de Gestión de Inventario{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="text-center mb-4">
+                <i class="fas fa-boxes"></i> 
+                Microservicio de Gestión de Inventario
+            </h1>
+            
+            <!-- Panel de Estado del Sistema -->
+            <div class="card mb-4 border-success">
+                <div class="card-header bg-success text-white">
+                    <h5><i class="fas fa-heartbeat"></i> Estado del Microservicio</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button type="button" class="btn btn-outline-success btn-block" onclick="checkHealth()">
+                                <i class="fas fa-sync-alt"></i> Verificar Estado
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="health-status" class="alert alert-info">
+                                <i class="fas fa-info-circle"></i> Haz clic para verificar el estado del microservicio
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Métricas ASR -->
+                    <div class="row mt-3">
+                        <div class="col-md-3 text-center">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>Tiempo Objetivo</h6>
+                                    <h4 class="text-success">&lt; 500ms</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>Usuarios Objetivo</h6>
+                                    <h4 class="text-primary">1500</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>Último Tiempo</h6>
+                                    <h4 id="last-response-time" class="text-info">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3 text-center">
+                            <div class="card bg-light">
+                                <div class="card-body">
+                                    <h6>ASR Status</h6>
+                                    <h4 id="asr-status" class="text-muted">-</h4>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs para diferentes operaciones -->
+            <ul class="nav nav-tabs" id="inventoryTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="consult-tab" data-toggle="tab" href="#consult" role="tab">
+                        <i class="fas fa-search"></i> Consultar Stock
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="transaction-tab" data-toggle="tab" href="#transaction" role="tab">
+                        <i class="fas fa-exchange-alt"></i> Crear Transacción
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="history-tab" data-toggle="tab" href="#history" role="tab">
+                        <i class="fas fa-history"></i> Historial
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="metrics-tab" data-toggle="tab" href="#metrics" role="tab">
+                        <i class="fas fa-chart-line"></i> Métricas ASR
+                    </a>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="inventoryTabContent">
+                
+                <!-- Tab 1: Consultar Stock -->
+                <div class="tab-pane fade show active" id="consult" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-search"></i> Consultar Estado de Stock</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="stock-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="producto_consulta">Producto</label>
+                                            <select class="form-control" id="producto_consulta" required>
+                                                <option value="">Seleccionar producto...</option>
+                                                <option value="zapatos">Zapatos</option>
+                                                <option value="caja">Caja</option>
+                                                <option value="libro">Libro</option>
+                                                <option value="mesa">Mesa</option>
+                                                <option value="silla">Silla</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="ubicacion_consulta">Ubicación</label>
+                                            <select class="form-control" id="ubicacion_consulta" required>
+                                                <option value="">Seleccionar ubicación...</option>
+                                                <option value="A1-B1">A1-B1</option>
+                                                <option value="A2-B1">A2-B1</option>
+                                                <option value="A3-B1">A3-B1</option>
+                                                <option value="A4-B1">A4-B1</option>
+                                                <option value="A5-B1">A5-B1</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label>&nbsp;</label>
+                                        <button type="submit" class="btn btn-primary btn-block">
+                                            <i class="fas fa-search"></i> Consultar
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div id="stock-result" class="mt-3" style="display: none;">
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-box"></i> Resultado de Consulta</h6>
+                                    <div id="stock-details"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: Crear Transacción -->
+                <div class="tab-pane fade" id="transaction" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-exchange-alt"></i> Crear Nueva Transacción</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="transaction-form">
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="producto_transaccion">Producto *</label>
+                                            <select class="form-control" id="producto_transaccion" required>
+                                                <option value="">Seleccionar producto...</option>
+                                                <option value="zapatos">Zapatos</option>
+                                                <option value="caja">Caja</option>
+                                                <option value="libro">Libro</option>
+                                                <option value="mesa">Mesa</option>
+                                                <option value="silla">Silla</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="tipo_operacion">Tipo de Operación *</label>
+                                            <select class="form-control" id="tipo_operacion" required>
+                                                <option value="">Seleccionar...</option>
+                                                <option value="RECEPCION">📦 RECEPCIÓN</option>
+                                                <option value="PICKING">📤 PICKING</option>
+                                                <option value="DEVOLUCION">↩️ DEVOLUCIÓN</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-2">
+                                        <div class="form-group">
+                                            <label for="cantidad">Cantidad *</label>
+                                            <input type="number" class="form-control" id="cantidad" min="1" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label for="ubicacion_transaccion">Ubicación *</label>
+                                            <select class="form-control" id="ubicacion_transaccion" required>
+                                                <option value="">Seleccionar...</option>
+                                                <option value="A1-B1">A1-B1</option>
+                                                <option value="A2-B1">A2-B1</option>
+                                                <option value="A3-B1">A3-B1</option>
+                                                <option value="A4-B1">A4-B1</option>
+                                                <option value="A5-B1">A5-B1</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="operario_id">Operario *</label>
+                                            <input type="text" class="form-control" id="operario_id" placeholder="ID del operario" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-8">
+                                        <label>&nbsp;</label><br>
+                                        <button type="submit" class="btn btn-success">
+                                            <i class="fas fa-plus"></i> Crear Transacción
+                                        </button>
+                                        <button type="button" class="btn btn-secondary ml-2" onclick="clearTransactionForm()">
+                                            <i class="fas fa-eraser"></i> Limpiar
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div id="transaction-result" class="mt-3" style="display: none;">
+                                <div class="alert alert-success">
+                                    <h6><i class="fas fa-check-circle"></i> Transacción Creada</h6>
+                                    <div id="transaction-details"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 3: Historial -->
+                <div class="tab-pane fade" id="history" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5>
+                                <i class="fas fa-history"></i> Historial de Transacciones
+                                <button type="button" class="btn btn-sm btn-outline-primary float-right" onclick="loadTransactionHistory()">
+                                    <i class="fas fa-sync-alt"></i> Actualizar
+                                </button>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="history-loading" class="text-center" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Cargando historial...
+                            </div>
+                            <div id="history-content">
+                                <p class="text-muted">Haz clic en "Actualizar" para cargar el historial de transacciones.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Métricas ASR -->
+                <div class="tab-pane fade" id="metrics" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5>
+                                <i class="fas fa-chart-line"></i> Métricas de Cumplimiento ASR
+                                <button type="button" class="btn btn-sm btn-outline-info float-right" onclick="loadMetrics()">
+                                    <i class="fas fa-sync-alt"></i> Actualizar Métricas
+                                </button>
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="metrics-loading" class="text-center" style="display: none;">
+                                <i class="fas fa-spinner fa-spin"></i> Cargando métricas...
+                            </div>
+                            <div id="metrics-content">
+                                <p class="text-muted">Haz clic en "Actualizar Métricas" para ver el rendimiento del microservicio.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript para interactuar con la API -->
+<script>
+const API_BASE_URL = '/api/inventory';
+
+// Función para verificar el estado del microservicio
+async function checkHealth() {
+    try {
+        const startTime = performance.now();
+        const response = await fetch(`${API_BASE_URL}/health/`);
+        const endTime = performance.now();
+        const responseTime = Math.round(endTime - startTime);
+        
+        if (response.ok) {
+            const data = await response.json();
+            
+            document.getElementById('health-status').innerHTML = `
+                <i class="fas fa-check-circle text-success"></i> 
+                <strong>Microservicio ACTIVO</strong><br>
+                <small>Versión: ${data.version} | Timestamp: ${new Date(data.timestamp).toLocaleString()}</small>
+            `;
+            document.getElementById('health-status').className = 'alert alert-success';
+            
+            // Actualizar métricas
+            document.getElementById('last-response-time').textContent = `${responseTime}ms`;
+            document.getElementById('asr-status').textContent = responseTime <= 500 ? '✅ CUMPLE' : '❌ NO CUMPLE';
+            document.getElementById('asr-status').className = responseTime <= 500 ? 'text-success' : 'text-danger';
+            
+        } else {
+            throw new Error('Error en la respuesta');
+        }
+    } catch (error) {
+        document.getElementById('health-status').innerHTML = `
+            <i class="fas fa-exclamation-triangle text-danger"></i> 
+            <strong>Error al conectar con el microservicio</strong><br>
+            <small>${error.message}</small>
+        `;
+        document.getElementById('health-status').className = 'alert alert-danger';
+    }
+}
+
+// Función para consultar stock
+document.getElementById('stock-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const producto = document.getElementById('producto_consulta').value;
+    const ubicacion = document.getElementById('ubicacion_consulta').value;
+    
+    try {
+        const startTime = performance.now();
+        const response = await fetch(`${API_BASE_URL}/status/${producto}/${ubicacion}/`);
+        const endTime = performance.now();
+        const responseTime = Math.round(endTime - startTime);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const data = result.data;
+            
+            document.getElementById('stock-details').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>Producto:</strong> ${data.producto_id}<br>
+                        <strong>Ubicación:</strong> ${data.ubicacion}<br>
+                        <strong>Cantidad Total:</strong> ${data.cantidad}
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Cantidad Reservada:</strong> ${data.cantidad_reservada}<br>
+                        <strong>Disponible:</strong> <span class="badge badge-success">${data.cantidad_disponible}</span><br>
+                        <strong>Tiempo de respuesta:</strong> ${responseTime}ms ${responseTime <= 500 ? '✅' : '❌'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('stock-result').style.display = 'block';
+        } else {
+            throw new Error('Producto no encontrado');
+        }
+    } catch (error) {
+        alert('Error al consultar stock: ' + error.message);
+    }
+});
+
+// Función para crear transacción
+document.getElementById('transaction-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        producto_id: document.getElementById('producto_transaccion').value,
+        tipo_operacion: document.getElementById('tipo_operacion').value,
+        cantidad: parseInt(document.getElementById('cantidad').value),
+        ubicacion: document.getElementById('ubicacion_transaccion').value,
+        operario_id: document.getElementById('operario_id').value
+    };
+    
+    try {
+        const startTime = performance.now();
+        const response = await fetch(`${API_BASE_URL}/transactions/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify(formData)
+        });
+        const endTime = performance.now();
+        const responseTime = Math.round(endTime - startTime);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const data = result.data;
+            
+            document.getElementById('transaction-details').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>ID Transacción:</strong> <code>${data.transaction_id}</code><br>
+                        <strong>Stock Anterior:</strong> ${data.stock_anterior}<br>
+                        <strong>Stock Nuevo:</strong> <span class="badge badge-info">${data.stock_nuevo}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tiempo de procesamiento:</strong> ${Math.round(data.processing_time_ms)}ms<br>
+                        <strong>ASR Cumplido:</strong> ${data.asr_compliant ? '✅ SÍ' : '❌ NO'}<br>
+                        <strong>Tiempo total:</strong> ${responseTime}ms ${responseTime <= 500 ? '✅' : '❌'}
+                    </div>
+                </div>
+            `;
+            document.getElementById('transaction-result').style.display = 'block';
+            
+            // Limpiar formulario
+            setTimeout(() => {
+                clearTransactionForm();
+            }, 3000);
+            
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Error desconocido');
+        }
+    } catch (error) {
+        alert('Error al crear transacción: ' + error.message);
+    }
+});
+
+// Función para cargar historial de transacciones
+async function loadTransactionHistory() {
+    document.getElementById('history-loading').style.display = 'block';
+    document.getElementById('history-content').innerHTML = '';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/transactions/`);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const transactions = result.data.transactions;
+            
+            let html = `
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Producto</th>
+                                <th>Operación</th>
+                                <th>Cantidad</th>
+                                <th>Ubicación</th>
+                                <th>Operario</th>
+                                <th>Estado</th>
+                                <th>Tiempo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+            `;
+            
+            transactions.forEach(tx => {
+                const operationBadge = {
+                    'RECEPCION': 'badge-success',
+                    'PICKING': 'badge-warning', 
+                    'DEVOLUCION': 'badge-info'
+                }[tx.tipo_operacion] || 'badge-secondary';
+                
+                html += `
+                    <tr>
+                        <td><small><code>${tx.id}</code></small></td>
+                        <td>${tx.producto_id}</td>
+                        <td><span class="badge ${operationBadge}">${tx.tipo_operacion}</span></td>
+                        <td>${tx.cantidad}</td>
+                        <td>${tx.ubicacion}</td>
+                        <td>${tx.operario_id}</td>
+                        <td><span class="badge badge-success">${tx.estado}</span></td>
+                        <td><small>${new Date(tx.timestamp).toLocaleString()}</small></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-muted text-center">Total de transacciones: ${transactions.length}</p>
+            `;
+            
+            document.getElementById('history-content').innerHTML = html;
+            
+        } else {
+            throw new Error('Error al cargar historial');
+        }
+    } catch (error) {
+        document.getElementById('history-content').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+            </div>
+        `;
+    } finally {
+        document.getElementById('history-loading').style.display = 'none';
+    }
+}
+
+// Función para cargar métricas
+async function loadMetrics() {
+    document.getElementById('metrics-loading').style.display = 'block';
+    document.getElementById('metrics-content').innerHTML = '';
+    
+    try {
+        const response = await fetch(`${API_BASE_URL}/metrics/`);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const metrics = result.metrics;
+            
+            let html = `
+                <div class="row">
+                    <div class="col-md-12">
+                        <h6>📊 Resumen de Operaciones</h6>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Operación</th>
+                                        <th>Total</th>
+                                        <th>Tiempo Promedio</th>
+                                        <th>Tasa Éxito</th>
+                                        <th>Cumplimiento ASR</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+            `;
+            
+            Object.entries(metrics.operations).forEach(([operation, data]) => {
+                html += `
+                    <tr>
+                        <td><strong>${operation}</strong></td>
+                        <td>${data.count}</td>
+                        <td>${data.avg_response_time_ms}ms</td>
+                        <td><span class="badge badge-success">${data.success_rate_percent}%</span></td>
+                        <td><span class="badge ${data.asr_compliance_rate_percent >= 95 ? 'badge-success' : 'badge-warning'}">${data.asr_compliance_rate_percent}%</span></td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <h6><i class="fas fa-info-circle"></i> Información ASR</h6>
+                            <ul class="mb-0">
+                                <li><strong>Objetivo de tiempo:</strong> < ${metrics.asr_target_ms}ms por operación</li>
+                                <li><strong>Total de operaciones:</strong> ${metrics.total_operations}</li>
+                                <li><strong>Usuarios concurrentes objetivo:</strong> 1500</li>
+                                <li><strong>Estado general:</strong> ${Object.values(metrics.operations).every(op => op.asr_compliance_rate_percent >= 95) ? '✅ CUMPLIENDO ASR' : '⚠️ REVISAR RENDIMIENTO'}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('metrics-content').innerHTML = html;
+            
+        } else {
+            throw new Error('Error al cargar métricas');
+        }
+    } catch (error) {
+        document.getElementById('metrics-content').innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle"></i> Error: ${error.message}
+            </div>
+        `;
+    } finally {
+        document.getElementById('metrics-loading').style.display = 'none';
+    }
+}
+
+// Función para limpiar formulario de transacción
+function clearTransactionForm() {
+    document.getElementById('transaction-form').reset();
+    document.getElementById('transaction-result').style.display = 'none';
+}
+
+// Auto-verificar estado al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    checkHealth();
+});
+</script>
+{% endblock %}
