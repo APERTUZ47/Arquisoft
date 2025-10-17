@@ -26,6 +26,16 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" id="update-tab" data-toggle="tab" href="#update" role="tab">
+                        <i class="fas fa-edit"></i> Actualizar Transacción
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="delete-tab" data-toggle="tab" href="#delete" role="tab">
+                        <i class="fas fa-trash-alt"></i> Cancelar Transacción
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" id="history-tab" data-toggle="tab" href="#history" role="tab">
                         <i class="fas fa-history"></i> Historial
                     </a>
@@ -176,7 +186,117 @@
                     </div>
                 </div>
 
-                <!-- Tab 3: Historial -->
+                <!-- Tab 3: Actualizar Transacción -->
+                <div class="tab-pane fade" id="update" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-edit"></i> Actualizar Transacción Existente</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="update-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="update_transaction_id">ID de Transacción *</label>
+                                            <input type="text" class="form-control" id="update_transaction_id" placeholder="ID de la transacción a actualizar" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="update_operario_id">Operario *</label>
+                                            <input type="text" class="form-control" id="update_operario_id" placeholder="ID del operario" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="update_tipo_operacion">Nuevo Tipo de Operación</label>
+                                            <select class="form-control" id="update_tipo_operacion">
+                                                <option value="">No cambiar...</option>
+                                                <option value="RECEPCION">RECEPCIÓN</option>
+                                                <option value="PICKING">PICKING</option>
+                                                <option value="DEVOLUCION">DEVOLUCIÓN</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="update_cantidad">Nueva Cantidad</label>
+                                            <input type="number" class="form-control" id="update_cantidad" min="1" placeholder="Nueva cantidad">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label>&nbsp;</label><br>
+                                        <button type="submit" class="btn btn-warning">
+                                            <i class="fas fa-edit"></i> Actualizar Transacción
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div id="update-result" class="mt-3" style="display: none;">
+                                <div class="alert alert-warning">
+                                    <h6><i class="fas fa-edit"></i> Transacción Actualizada</h6>
+                                    <div id="update-details"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 4: Cancelar Transacción -->
+                <div class="tab-pane fade" id="delete" role="tabpanel">
+                    <div class="card mt-3">
+                        <div class="card-header">
+                            <h5><i class="fas fa-trash-alt"></i> Cancelar Transacción</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <strong>Advertencia:</strong> Esta operación cancelará la transacción y revertirá sus efectos en el inventario.
+                            </div>
+                            
+                            <form id="delete-form">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="delete_transaction_id">ID de Transacción *</label>
+                                            <input type="text" class="form-control" id="delete_transaction_id" placeholder="ID de la transacción a cancelar" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label for="delete_operario_id">Operario *</label>
+                                            <input type="text" class="form-control" id="delete_operario_id" placeholder="ID del operario" required>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <button type="submit" class="btn btn-danger">
+                                            <i class="fas fa-trash-alt"></i> Cancelar Transacción
+                                        </button>
+                                        <button type="button" class="btn btn-secondary ml-2" onclick="clearDeleteForm()">
+                                            <i class="fas fa-eraser"></i> Limpiar
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                            
+                            <div id="delete-result" class="mt-3" style="display: none;">
+                                <div class="alert alert-danger">
+                                    <h6><i class="fas fa-ban"></i> Transacción Cancelada</h6>
+                                    <div id="delete-details"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 5: Historial -->
                 <div class="tab-pane fade" id="history" role="tabpanel">
                     <div class="card mt-3">
                         <div class="card-header">
@@ -480,10 +600,157 @@ async function loadMetrics() {
     }
 }
 
+    }
+});
+
+// Manejar formulario de actualización
+document.getElementById('update-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const transactionId = document.getElementById('update_transaction_id').value;
+    const formData = {
+        transaction_id: transactionId,
+        operario_id: document.getElementById('update_operario_id').value
+    };
+    
+    // Agregar campos opcionales si tienen valor
+    const tipoOperacion = document.getElementById('update_tipo_operacion').value;
+    if (tipoOperacion) {
+        formData.tipo_operacion = tipoOperacion;
+    }
+    
+    const cantidad = document.getElementById('update_cantidad').value;
+    if (cantidad) {
+        formData.cantidad = parseInt(cantidad);
+    }
+    
+    try {
+        const startTime = performance.now();
+        const response = await fetch(`${API_BASE_URL}/transactions/`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify(formData)
+        });
+        const endTime = performance.now();
+        const responseTime = Math.round(endTime - startTime);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const data = result.data;
+            
+            document.getElementById('update-details').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>ID Transacción:</strong> <code>${data.transaction_id}</code><br>
+                        <strong>Stock Anterior:</strong> ${data.stock_anterior}<br>
+                        <strong>Stock Nuevo:</strong> <span class="badge badge-warning">${data.stock_nuevo}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Tiempo de procesamiento:</strong> ${Math.round(data.processing_time_ms)}ms<br>
+                        <strong>ASR Compliant:</strong> ${data.asr_compliant ? '✅ Sí' : '❌ No'}<br>
+                        <strong>Tiempo total:</strong> ${responseTime}ms
+                    </div>
+                </div>
+            `;
+            document.getElementById('update-result').style.display = 'block';
+            
+            // Limpiar formulario después de 3 segundos
+            setTimeout(() => {
+                clearUpdateForm();
+            }, 3000);
+            
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Error desconocido');
+        }
+    } catch (error) {
+        alert('Error al actualizar transacción: ' + error.message);
+    }
+});
+
+// Manejar formulario de cancelación
+document.getElementById('delete-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    const transactionId = document.getElementById('delete_transaction_id').value;
+    const operarioId = document.getElementById('delete_operario_id').value;
+    
+    // Confirmar antes de cancelar
+    if (!confirm(`¿Está seguro de que desea cancelar la transacción ${transactionId}? Esta acción revertirá los cambios en el inventario.`)) {
+        return;
+    }
+    
+    const formData = {
+        transaction_id: transactionId,
+        operario_id: operarioId
+    };
+    
+    try {
+        const startTime = performance.now();
+        const response = await fetch(`${API_BASE_URL}/transactions/`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]')?.value || ''
+            },
+            body: JSON.stringify(formData)
+        });
+        const endTime = performance.now();
+        const responseTime = Math.round(endTime - startTime);
+        
+        if (response.ok) {
+            const result = await response.json();
+            const data = result.data;
+            
+            document.getElementById('delete-details').innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <strong>ID Transacción:</strong> <code>${data.transaction_id}</code><br>
+                        <strong>Estado Anterior:</strong> ${data.estado_anterior}<br>
+                        <strong>Estado Nuevo:</strong> <span class="badge badge-danger">${data.estado_nuevo}</span>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Stock Revertido:</strong> ${data.stock_revertido}<br>
+                        <strong>Tiempo de procesamiento:</strong> ${Math.round(data.processing_time_ms)}ms<br>
+                        <strong>Tiempo total:</strong> ${responseTime}ms
+                    </div>
+                </div>
+            `;
+            document.getElementById('delete-result').style.display = 'block';
+            
+            // Limpiar formulario después de 3 segundos
+            setTimeout(() => {
+                clearDeleteForm();
+            }, 3000);
+            
+        } else {
+            const error = await response.json();
+            throw new Error(error.error || 'Error desconocido');
+        }
+    } catch (error) {
+        alert('Error al cancelar transacción: ' + error.message);
+    }
+});
+
 // Función para limpiar formulario de transacción
 function clearTransactionForm() {
     document.getElementById('transaction-form').reset();
     document.getElementById('transaction-result').style.display = 'none';
+}
+
+// Función para limpiar formulario de actualización
+function clearUpdateForm() {
+    document.getElementById('update-form').reset();
+    document.getElementById('update-result').style.display = 'none';
+}
+
+// Función para limpiar formulario de cancelación
+function clearDeleteForm() {
+    document.getElementById('delete-form').reset();
+    document.getElementById('delete-result').style.display = 'none';
 }
 
 // Página cargada - sin verificaciones automáticas
