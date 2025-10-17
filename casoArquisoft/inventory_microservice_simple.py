@@ -209,6 +209,184 @@ class InventoryServiceSimulator:
         })
         
         return result
+    
+    @staticmethod
+    def update_transaction(transaction_id, data):
+        """Actualiza una transacción existente de inventario"""
+        start_time = time.time()
+        
+        # Verificar que la transacción existe
+        if transaction_id not in TRANSACTIONS:
+            processing_time = (time.time() - start_time) * 1000
+            METRICS.append({
+                'operation': 'UPDATE_TRANSACTION',
+                'processing_time_ms': processing_time,
+                'timestamp': datetime.now().isoformat(),
+                'success': False,
+                'asr_compliant': processing_time <= 500,
+                'error': 'Transaction not found'
+            })
+            return {
+                'success': False,
+                'error': 'Transacción no encontrada',
+                'processing_time_ms': processing_time
+            }
+        
+        transaction = TRANSACTIONS[transaction_id]
+        
+        # Solo permitir actualizar transacciones en estado COMPLETADA
+        if transaction['estado'] != 'COMPLETADA':
+            processing_time = (time.time() - start_time) * 1000
+            return {
+                'success': False,
+                'error': 'Solo se pueden actualizar transacciones completadas',
+                'processing_time_ms': processing_time
+            }
+        
+        # Revertir la operación anterior en el stock
+        producto_id = transaction['producto_id']
+        ubicacion = transaction['ubicacion']
+        stock_key = f"{producto_id}_{ubicacion}"
+        
+        if stock_key in INVENTORY_STOCK:
+            # Revertir cambio anterior
+            if transaction['tipo_operacion'] in ['RECEPCION', 'DEVOLUCION']:
+                INVENTORY_STOCK[stock_key]['cantidad'] -= transaction['cantidad']
+            elif transaction['tipo_operacion'] == 'PICKING':
+                INVENTORY_STOCK[stock_key]['cantidad'] += transaction['cantidad']
+        
+        # Aplicar nueva cantidad si se proporciona
+        nueva_cantidad = data.get('cantidad', transaction['cantidad'])
+        nuevo_tipo = data.get('tipo_operacion', transaction['tipo_operacion'])
+        
+        # Aplicar nueva operación
+        cantidad_anterior = INVENTORY_STOCK[stock_key]['cantidad']
+        if nuevo_tipo in ['RECEPCION', 'DEVOLUCION']:
+            INVENTORY_STOCK[stock_key]['cantidad'] += nueva_cantidad
+        elif nuevo_tipo == 'PICKING':
+            if INVENTORY_STOCK[stock_key]['cantidad'] >= nueva_cantidad:
+                INVENTORY_STOCK[stock_key]['cantidad'] -= nueva_cantidad
+            else:
+                # Revertir cambio si no hay stock suficiente
+                if transaction['tipo_operacion'] in ['RECEPCION', 'DEVOLUCION']:
+                    INVENTORY_STOCK[stock_key]['cantidad'] += transaction['cantidad']
+                elif transaction['tipo_operacion'] == 'PICKING':
+                    INVENTORY_STOCK[stock_key]['cantidad'] -= transaction['cantidad']
+                
+                processing_time = (time.time() - start_time) * 1000
+                return {
+                    'success': False,
+                    'error': 'Stock insuficiente para la actualización',
+                    'processing_time_ms': processing_time
+                }
+        
+        # Actualizar la transacción
+        transaction.update({
+            'cantidad': nueva_cantidad,
+            'tipo_operacion': nuevo_tipo,
+            'cantidad_anterior': cantidad_anterior,
+            'cantidad_nueva': INVENTORY_STOCK[stock_key]['cantidad'],
+            'estado': 'ACTUALIZADA',
+            'timestamp_actualizacion': datetime.now().isoformat(),
+            'operario_actualizacion': data.get('operario_id', transaction['operario_id'])
+        })
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        # Registrar métrica
+        METRICS.append({
+            'operation': 'UPDATE_TRANSACTION',
+            'processing_time_ms': processing_time,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'asr_compliant': processing_time <= 500
+        })
+        
+        return {
+            'success': True,
+            'transaction_id': transaction_id,
+            'processing_time_ms': processing_time,
+            'stock_anterior': cantidad_anterior,
+            'stock_nuevo': INVENTORY_STOCK[stock_key]['cantidad'],
+            'asr_compliant': processing_time <= 500
+        }
+    
+    @staticmethod
+    def delete_transaction(transaction_id, operario_id):
+        """Cancela/elimina una transacción de inventario"""
+        start_time = time.time()
+        
+        # Verificar que la transacción existe
+        if transaction_id not in TRANSACTIONS:
+            processing_time = (time.time() - start_time) * 1000
+            METRICS.append({
+                'operation': 'DELETE_TRANSACTION',
+                'processing_time_ms': processing_time,
+                'timestamp': datetime.now().isoformat(),
+                'success': False,
+                'asr_compliant': processing_time <= 500,
+                'error': 'Transaction not found'
+            })
+            return {
+                'success': False,
+                'error': 'Transacción no encontrada',
+                'processing_time_ms': processing_time
+            }
+        
+        transaction = TRANSACTIONS[transaction_id]
+        
+        # Solo permitir cancelar transacciones COMPLETADAS o ACTUALIZADAS
+        if transaction['estado'] not in ['COMPLETADA', 'ACTUALIZADA']:
+            processing_time = (time.time() - start_time) * 1000
+            return {
+                'success': False,
+                'error': 'Solo se pueden cancelar transacciones completadas o actualizadas',
+                'processing_time_ms': processing_time
+            }
+        
+        # Revertir el impacto en el stock
+        producto_id = transaction['producto_id']
+        ubicacion = transaction['ubicacion']
+        stock_key = f"{producto_id}_{ubicacion}"
+        
+        if stock_key in INVENTORY_STOCK:
+            cantidad_anterior = INVENTORY_STOCK[stock_key]['cantidad']
+            
+            # Revertir operación
+            if transaction['tipo_operacion'] in ['RECEPCION', 'DEVOLUCION']:
+                INVENTORY_STOCK[stock_key]['cantidad'] -= transaction['cantidad']
+            elif transaction['tipo_operacion'] == 'PICKING':
+                INVENTORY_STOCK[stock_key]['cantidad'] += transaction['cantidad']
+            
+            # Marcar transacción como cancelada en lugar de eliminarla completamente
+            transaction.update({
+                'estado': 'CANCELADA',
+                'timestamp_cancelacion': datetime.now().isoformat(),
+                'operario_cancelacion': operario_id,
+                'stock_antes_cancelacion': cantidad_anterior,
+                'stock_despues_cancelacion': INVENTORY_STOCK[stock_key]['cantidad']
+            })
+        
+        processing_time = (time.time() - start_time) * 1000
+        
+        # Registrar métrica
+        METRICS.append({
+            'operation': 'DELETE_TRANSACTION',
+            'processing_time_ms': processing_time,
+            'timestamp': datetime.now().isoformat(),
+            'success': True,
+            'asr_compliant': processing_time <= 500
+        })
+        
+        return {
+            'success': True,
+            'transaction_id': transaction_id,
+            'processing_time_ms': processing_time,
+            'estado_anterior': 'COMPLETADA' if 'timestamp_actualizacion' not in transaction else 'ACTUALIZADA',
+            'estado_nuevo': 'CANCELADA',
+            'stock_revertido': INVENTORY_STOCK[stock_key]['cantidad'] if stock_key in INVENTORY_STOCK else 0,
+            'asr_compliant': processing_time <= 500
+        }
 
 # =============================================================================
 # VISTAS DEL API DEL MICROSERVICIO
@@ -278,6 +456,108 @@ class TransactionView(View):
                     'status': 'success',
                     'data': result
                 }, status=201)
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': result['error'],
+                    'processing_time_ms': result['processing_time_ms']
+                }, status=400)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'error': 'JSON inválido'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+    
+    def put(self, request):
+        """Actualiza una transacción existente de inventario"""
+        try:
+            data = json.loads(request.body)
+            
+            # Validar campo requerido
+            if 'transaction_id' not in data:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': 'Campo requerido faltante: transaction_id'
+                }, status=400)
+            
+            # Validar tipo de operación si se proporciona
+            if 'tipo_operacion' in data and data['tipo_operacion'] not in ['RECEPCION', 'PICKING', 'DEVOLUCION']:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': 'Tipo de operación inválido. Debe ser: RECEPCION, PICKING, o DEVOLUCION'
+                }, status=400)
+            
+            # Validar cantidad si se proporciona
+            if 'cantidad' in data and (not isinstance(data['cantidad'], int) or data['cantidad'] <= 0):
+                return JsonResponse({
+                    'status': 'error',
+                    'error': 'La cantidad debe ser un número entero positivo'
+                }, status=400)
+            
+            # Actualizar transacción
+            result = InventoryServiceSimulator.update_transaction(
+                transaction_id=data['transaction_id'],
+                data=data
+            )
+            
+            if result['success']:
+                return JsonResponse({
+                    'status': 'success',
+                    'data': result
+                })
+            else:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': result['error'],
+                    'processing_time_ms': result['processing_time_ms']
+                }, status=400)
+            
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'status': 'error',
+                'error': 'JSON inválido'
+            }, status=400)
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'error': str(e)
+            }, status=500)
+    
+    def delete(self, request):
+        """Cancela/elimina una transacción de inventario"""
+        try:
+            data = json.loads(request.body)
+            
+            # Validar campos requeridos
+            if 'transaction_id' not in data:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': 'Campo requerido faltante: transaction_id'
+                }, status=400)
+            
+            if 'operario_id' not in data:
+                return JsonResponse({
+                    'status': 'error',
+                    'error': 'Campo requerido faltante: operario_id'
+                }, status=400)
+            
+            # Cancelar transacción
+            result = InventoryServiceSimulator.delete_transaction(
+                transaction_id=data['transaction_id'],
+                operario_id=data['operario_id']
+            )
+            
+            if result['success']:
+                return JsonResponse({
+                    'status': 'success',
+                    'data': result
+                })
             else:
                 return JsonResponse({
                     'status': 'error',
