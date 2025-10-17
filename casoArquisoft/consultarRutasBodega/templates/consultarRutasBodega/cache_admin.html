@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Administración de Caché</title>
+    <meta charset="utf-8">
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f8f9fa;
+        }
+        .container { 
+            max-width: 800px; 
+            margin: 0 auto; 
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .stats { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 20px 0; 
+            border-left: 4px solid #007bff;
+        }
+        .btn { 
+            background: #007bff; 
+            color: white; 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 3px; 
+            margin: 5px; 
+            cursor: pointer; 
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn:hover { background: #0056b3; }
+        .btn-danger { background: #dc3545; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-success { background: #28a745; }
+        .btn-success:hover { background: #218838; }
+        .mensaje { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 5px; 
+            border-left: 4px solid #28a745;
+        }
+        .success { 
+            background: #d4edda; 
+            color: #155724; 
+            border-left-color: #28a745;
+        }
+        .info { 
+            background: #d1ecf1; 
+            color: #0c5460; 
+            border-left-color: #17a2b8;
+        }
+        .object-tag {
+            background: #e9ecef; 
+            padding: 4px 8px; 
+            border-radius: 15px; 
+            margin: 2px; 
+            display: inline-block;
+            font-size: 0.9em;
+        }
+        h1 { color: #333; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        h3 { color: #555; margin-top: 25px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🗄️ Administración de Caché DynamoDB</h1>
+        
+        {% if mensaje %}
+            <div class="mensaje success">{{ mensaje }}</div>
+        {% endif %}
+        
+        <div class="stats">
+            <h3>📊 Estadísticas del Sistema de Caché</h3>
+            <p><strong>🧠 Caché en Memoria:</strong> {{ estadisticas.cache_memoria_items }} items</p>
+            
+            {% if estadisticas.cache_memoria_objetos %}
+                <p><strong>Objetos en memoria:</strong></p>
+                <div>
+                    {% for obj in estadisticas.cache_memoria_objetos %}
+                        <span class="object-tag">{{ obj }}</span>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            
+            {% if estadisticas.cache_dynamodb_items %}
+                <p><strong>☁️ Caché DynamoDB:</strong> {{ estadisticas.cache_dynamodb_items }} items</p>
+            {% elif estadisticas.cache_dynamodb_error %}
+                <p><strong>❌ Error DynamoDB:</strong> {{ estadisticas.cache_dynamodb_error }}</p>
+            {% else %}
+                <p><strong>☁️ Caché DynamoDB:</strong> No configurado</p>
+            {% endif %}
+        </div>
+        
+        <div>
+            <h3>🔧 Acciones de Administración</h3>
+            <div class="grid">
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="crear_tabla">
+                    <button type="submit" class="btn btn-success">
+                        📋 Crear Tabla Caché DynamoDB
+                    </button>
+                </form>
+                
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="limpiar_memoria">
+                    <button type="submit" class="btn btn-danger">
+                        🧹 Limpiar Caché Memoria
+                    </button>
+                </form>
+                
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="accion" value="test_cache">
+                    <button type="submit" class="btn">
+                        🧪 Probar Sistema Caché
+                    </button>
+                </form>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>ℹ️ Información del Sistema de Caché Híbrido</h3>
+            <div style="background: #e8f4f8; padding: 15px; border-radius: 5px;">
+                <ul style="margin: 0; padding-left: 20px;">
+                    <li><strong>🧠 Caché en Memoria:</strong> Más rápido (~1ms), se pierde al reiniciar la aplicación</li>
+                    <li><strong>☁️ Caché DynamoDB:</strong> Persistente (~50ms), TTL automático de 1 hora</li>
+                    <li><strong>🗃️ Base de Datos MySQL:</strong> Fuente de verdad (~200ms)</li>
+                    <li><strong>📈 Orden de consulta:</strong> Memoria → DynamoDB → MySQL</li>
+                    <li><strong>⏰ TTL:</strong> Los elementos en DynamoDB expiran automáticamente en 1 hora</li>
+                    <li><strong>🚀 Rendimiento:</strong> Acelera las consultas de objetos frecuentes</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>🎯 Cómo usar el caché:</h3>
+            <ol>
+                <li>Haz clic en "Crear Tabla Caché DynamoDB" para configurar AWS</li>
+                <li>Usa "Probar Sistema Caché" para verificar que funciona</li>
+                <li>Haz consultas normales en tu aplicación - el caché funcionará automáticamente</li>
+                <li>Usa "Limpiar Caché Memoria" si necesitas forzar consultas frescas</li>
+            </ol>
+        </div>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <a href="{% url 'index' %}" class="btn">← Volver al Inicio</a>
+            <a href="{% url 'consultar_rutas' %}" class="btn">📋 Ver Objetos</a>
+            <a href="{% url 'buscar_ruta' %}" class="btn">🔍 Buscar Rutas</a>
+        </div>
+    </div>
+</body>
+</html>

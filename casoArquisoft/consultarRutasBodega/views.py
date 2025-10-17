@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from django.http import HttpResponse, JsonResponse
 from django.db import connection
@@ -6,6 +7,9 @@ from mysql.connector import Error
 import time
 from datetime import datetime
 import os
+
+# Mecanismo de caché mínimo en memoria para descripciones de objetos
+cache_objetos = {}
 
 
 def obtener_conexion_mysql():
@@ -269,11 +273,24 @@ def obtener_ip_cliente(request):
     return ip
 
 def obtener_descripcion_objeto(nombre_objeto):
-    """Obtiene descripción y ubicación de un objeto desde la BD"""
+    """Obtiene descripción y ubicación de un objeto usando caché híbrido: memoria -> DynamoDB -> BD"""
+    
+    # 1. Verificar caché en memoria (más rápido)
+    if nombre_objeto in cache_objetos:
+        return cache_objetos[nombre_objeto]
+    
+    # 2. Verificar caché en DynamoDB
+    resultado_dynamo = obtener_de_cache_dynamodb(nombre_objeto)
+    if resultado_dynamo:
+        # Guardar en memoria para próximas consultas
+        cache_objetos[nombre_objeto] = resultado_dynamo
+        return resultado_dynamo
+    
+    # 3. Consultar BD MySQL y guardar en ambos cachés
     conexion = obtener_conexion_mysql()
     if not conexion:
         return nombre_objeto[0].upper(), 'N/A'
-    
+
     cursor = conexion.cursor()
     try:
         cursor.execute(
@@ -281,25 +298,147 @@ def obtener_descripcion_objeto(nombre_objeto):
             (nombre_objeto,)
         )
         resultado = cursor.fetchone()
-        
+
         if resultado:
-            return resultado[0], resultado[1]
+            desc, ubicacion = resultado[0], resultado[1]
         else:
-            # Si no existe, crearlo con valores por defecto
-            desc_default = 'CO' if nombre_objeto.lower() == 'computadora' else nombre_objeto[0].upper()
+            desc = 'CO' if nombre_objeto.lower() == 'computadora' else nombre_objeto[0].upper()
+            ubicacion = 'N/A'
             cursor.execute(
                 "INSERT INTO objetos (nombre, descripcion, ubicacion) VALUES (%s, %s, %s)",
-                (nombre_objeto, desc_default, 'N/A')
+                (nombre_objeto, desc, ubicacion)
             )
             conexion.commit()
-            return desc_default, 'N/A'
-            
+
+        # Guardar en ambos cachés
+        cache_objetos[nombre_objeto] = (desc, ubicacion)
+        guardar_en_cache_dynamodb(nombre_objeto, desc, ubicacion)
+        
+        return desc, ubicacion
+
     except Error as e:
         print(f"Error obteniendo descripción de {nombre_objeto}: {e}")
         return nombre_objeto[0].upper(), 'N/A'
     finally:
         cursor.close()
         conexion.close()
+
+def obtener_de_cache_dynamodb(nombre_objeto):
+    """Obtiene un objeto del caché DynamoDB"""
+    client = obtener_cliente_aws_academy()
+    if not client:
+        return None
+    
+    try:
+        current_time = int(time.time())
+        
+        response = client.get_item(
+            TableName='cache-objetos-bodega',
+            Key={'cache_key': {'S': f"obj_{nombre_objeto}"}}
+        )
+        
+        if 'Item' in response:
+            # Verificar si no ha expirado (TTL de 1 hora = 3600 segundos)
+            ttl = int(response['Item']['ttl']['N'])
+            if current_time < ttl:
+                desc = response['Item']['descripcion']['S']
+                ubicacion = response['Item']['ubicacion']['S']
+                print(f"✅ Cache HIT DynamoDB: {nombre_objeto}")
+                return desc, ubicacion
+        
+        print(f"❌ Cache MISS DynamoDB: {nombre_objeto}")
+        return None
+        
+    except Exception as e:
+        print(f"Error consultando caché DynamoDB: {e}")
+        return None
+
+def guardar_en_cache_dynamodb(nombre_objeto, descripcion, ubicacion):
+    """Guarda un objeto en el caché DynamoDB con TTL de 1 hora"""
+    client = obtener_cliente_aws_academy()
+    if not client:
+        return
+    
+    try:
+        current_time = int(time.time())
+        
+        client.put_item(
+            TableName='cache-objetos-bodega',
+            Item={
+                'cache_key': {'S': f"obj_{nombre_objeto}"},
+                'descripcion': {'S': descripcion},
+                'ubicacion': {'S': ubicacion},
+                'ttl': {'N': str(current_time + 3600)},  # Expira en 1 hora
+                'timestamp': {'S': datetime.now().isoformat()}
+            }
+        )
+        
+        print(f"✅ Guardado en caché DynamoDB: {nombre_objeto}")
+        
+    except Exception as e:
+        print(f"Error guardando en caché DynamoDB: {e}")
+
+def crear_tabla_cache_dynamodb():
+    """Crea tabla de caché en DynamoDB con TTL automático"""
+    client = obtener_cliente_aws_academy()
+    if not client:
+        return "AWS no configurado"
+    
+    try:
+        # Crear tabla de caché
+        response = client.create_table(
+            TableName='cache-objetos-bodega',
+            KeySchema=[{'AttributeName': 'cache_key', 'KeyType': 'HASH'}],
+            AttributeDefinitions=[{'AttributeName': 'cache_key', 'AttributeType': 'S'}],
+            BillingMode='PAY_PER_REQUEST'
+        )
+        
+        # Configurar TTL (Time To Live) para limpieza automática
+        try:
+            client.update_time_to_live(
+                TableName='cache-objetos-bodega',
+                TimeToLiveSpecification={
+                    'AttributeName': 'ttl',
+                    'Enabled': True
+                }
+            )
+            print("✅ TTL configurado para limpieza automática")
+        except Exception as ttl_error:
+            print(f"⚠️ TTL no configurado: {ttl_error}")
+        
+        return f"✅ Tabla de caché DynamoDB creada: {response['TableDescription']['TableName']}"
+        
+    except Exception as e:
+        if 'ResourceInUseException' in str(e):
+            return "✅ Tabla de caché ya existe"
+        return f"❌ Error creando tabla caché: {e}"
+
+def limpiar_cache_memoria():
+    """Limpia el caché en memoria (útil para pruebas)"""
+    global cache_objetos
+    cache_objetos.clear()
+    return "✅ Caché en memoria limpiado"
+
+def estadisticas_cache():
+    """Obtiene estadísticas del uso del caché"""
+    estadisticas = {
+        'cache_memoria_items': len(cache_objetos),
+        'cache_memoria_objetos': list(cache_objetos.keys())
+    }
+    
+    # Intentar obtener estadísticas de DynamoDB
+    client = obtener_cliente_aws_academy()
+    if client:
+        try:
+            response = client.scan(
+                TableName='cache-objetos-bodega',
+                Select='COUNT'
+            )
+            estadisticas['cache_dynamodb_items'] = response['Count']
+        except Exception as e:
+            estadisticas['cache_dynamodb_error'] = str(e)
+    
+    return estadisticas
 
 def guardar_consulta_en_bd(objeto1, objeto2, ruta_resultado, tiempo_frontend, 
                           tiempo_backend, tiempo_obj1, tiempo_obj2, tiempo_concat, ip_cliente):
@@ -576,3 +715,31 @@ def obtener_objetos_aws_academy():
     except Exception as e:
         print(f"Error escaneando AWS tabla: {e}")
         return []
+
+def vista_cache_admin(request):
+    """Vista para administrar el sistema de caché"""
+    mensaje = ""
+    
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+        
+        if accion == 'crear_tabla':
+            mensaje = crear_tabla_cache_dynamodb()
+        elif accion == 'limpiar_memoria':
+            mensaje = limpiar_cache_memoria()
+        elif accion == 'test_cache':
+            # Probar el sistema de caché
+            test_objeto = 'zapatos'
+            inicio = time.time()
+            desc, ubicacion = obtener_descripcion_objeto(test_objeto)
+            tiempo = round((time.time() - inicio) * 1000, 2)
+            mensaje = f"✅ Test completado: {test_objeto} -> {desc}, {ubicacion} ({tiempo}ms)"
+    
+    stats = estadisticas_cache()
+    
+    context = {
+        'mensaje': mensaje,
+        'estadisticas': stats
+    }
+    
+    return render(request, 'consultarRutasBodega/cache_admin.html', context)
