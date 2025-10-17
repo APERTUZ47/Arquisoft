@@ -11,62 +11,7 @@
                 Microservicio de Gestión de Inventario
             </h1>
             
-            <!-- Panel de Estado del Sistema -->
-            <div class="card mb-4 border-success">
-                <div class="card-header bg-success text-white">
-                    <h5><i class="fas fa-heartbeat"></i> Estado del Microservicio</h5>
-                </div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-md-6">
-                            <button type="button" class="btn btn-outline-success btn-block" onclick="checkHealth()">
-                                <i class="fas fa-sync-alt"></i> Verificar Estado
-                            </button>
-                        </div>
-                        <div class="col-md-6">
-                            <div id="health-status" class="alert alert-info">
-                                <i class="fas fa-info-circle"></i> Haz clic para verificar el estado del microservicio
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Métricas ASR -->
-                    <div class="row mt-3">
-                        <div class="col-md-3 text-center">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>Tiempo Objetivo</h6>
-                                    <h4 class="text-success">&lt; 500ms</h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>Usuarios Objetivo</h6>
-                                    <h4 class="text-primary">1500</h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>Último Tiempo</h6>
-                                    <h4 id="last-response-time" class="text-info">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-3 text-center">
-                            <div class="card bg-light">
-                                <div class="card-body">
-                                    <h6>ASR Status</h6>
-                                    <h4 id="asr-status" class="text-muted">-</h4>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+
 
             <!-- Tabs para diferentes operaciones -->
             <ul class="nav nav-tabs" id="inventoryTabs" role="tablist">
@@ -284,41 +229,7 @@
 <script>
 const API_BASE_URL = '/api/inventory';
 
-// Función para verificar el estado del microservicio
-async function checkHealth() {
-    try {
-        const startTime = performance.now();
-        const response = await fetch(`${API_BASE_URL}/health/`);
-        const endTime = performance.now();
-        const responseTime = Math.round(endTime - startTime);
-        
-        if (response.ok) {
-            const data = await response.json();
-            
-            document.getElementById('health-status').innerHTML = `
-                <i class="fas fa-check-circle text-success"></i> 
-                <strong>Microservicio ACTIVO</strong><br>
-                <small>Versión: ${data.version} | Timestamp: ${new Date(data.timestamp).toLocaleString()}</small>
-            `;
-            document.getElementById('health-status').className = 'alert alert-success';
-            
-            // Actualizar métricas
-            document.getElementById('last-response-time').textContent = `${responseTime}ms`;
-            document.getElementById('asr-status').textContent = responseTime <= 500 ? '✅ CUMPLE' : '❌ NO CUMPLE';
-            document.getElementById('asr-status').className = responseTime <= 500 ? 'text-success' : 'text-danger';
-            
-        } else {
-            throw new Error('Error en la respuesta');
-        }
-    } catch (error) {
-        document.getElementById('health-status').innerHTML = `
-            <i class="fas fa-exclamation-triangle text-danger"></i> 
-            <strong>Error al conectar con el microservicio</strong><br>
-            <small>${error.message}</small>
-        `;
-        document.getElementById('health-status').className = 'alert alert-danger';
-    }
-}
+
 
 // Función para consultar stock
 document.getElementById('stock-form').addEventListener('submit', async function(e) {
@@ -347,7 +258,7 @@ document.getElementById('stock-form').addEventListener('submit', async function(
                     <div class="col-md-6">
                         <strong>Cantidad Reservada:</strong> ${data.cantidad_reservada}<br>
                         <strong>Disponible:</strong> <span class="badge badge-success">${data.cantidad_disponible}</span><br>
-                        <strong>Tiempo de respuesta:</strong> ${responseTime}ms ${responseTime <= 500 ? '✅' : '❌'}
+                        <strong>Tiempo de respuesta:</strong> ${responseTime}ms
                     </div>
                 </div>
             `;
@@ -398,8 +309,8 @@ document.getElementById('transaction-form').addEventListener('submit', async fun
                     </div>
                     <div class="col-md-6">
                         <strong>Tiempo de procesamiento:</strong> ${Math.round(data.processing_time_ms)}ms<br>
-                        <strong>ASR Cumplido:</strong> ${data.asr_compliant ? '✅ SÍ' : '❌ NO'}<br>
-                        <strong>Tiempo total:</strong> ${responseTime}ms ${responseTime <= 500 ? '✅' : '❌'}
+                        <strong>Transacción exitosa</strong> ✅<br>
+                        <strong>Tiempo total:</strong> ${responseTime}ms
                     </div>
                 </div>
             `;
@@ -575,9 +486,10 @@ function clearTransactionForm() {
     document.getElementById('transaction-result').style.display = 'none';
 }
 
-// Auto-verificar estado al cargar la página
+// Página cargada - sin verificaciones automáticas
 document.addEventListener('DOMContentLoaded', function() {
-    checkHealth();
+    // JMeter realizará las pruebas de carga
+    console.log('Panel de inventario cargado - Listo para operaciones manuales');
 });
 </script>
 {% endblock %}
