@@ -15,25 +15,29 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-
 from django.http import JsonResponse
 from django.utils import timezone
-from django.views import View
 
-class InventoryHealthView(View):
-    def get(self, request):
-        return JsonResponse({
-            'status': 'healthy',
-            'service': 'inventory_microservice',
-            'timestamp': timezone.now().isoformat(),
-            'version': '1.0.0'
-        })
+def health_check(request):
+    """Health check para todos los microservicios"""
+    return JsonResponse({
+        'status': 'healthy',
+        'timestamp': timezone.now().isoformat(),
+        'microservices': {
+            'auth': 'active',
+            'rutas': 'active',
+        }
+    })
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Health check general
+    path('health/', health_check, name='health_check'),
+    
+    # Microservicio de Autenticación
+    path('auth/', include('authMicroservice.urls')),
+    
+    # Microservicio de Rutas de Bodega
     path('', include('consultarRutasBodega.urls')),
-
-    # URLs del microservicio de inventario
-    path('api/inventory/', include('inventory_urls')),
-    path('health/inventory/', InventoryHealthView.as_view(), name='inventory_health'),
 ]
