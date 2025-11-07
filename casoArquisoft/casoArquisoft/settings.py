@@ -39,7 +39,22 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'consultarRutasBodega',
+    'authMicroservice.apps.AuthMicroserviceConfig',
 ]
+
+MICROSERVICES = {
+    'auth': {
+        'name': 'authMicroservice',
+        'url_prefix': 'auth',
+        'version': '1.0.0',
+    },
+    'rutas': {
+        'name': 'consultarRutasBodega',
+        'url_prefix': '',
+        'version': '1.0.0',
+    }
+}
+
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
@@ -165,7 +180,7 @@ CORS_ALLOW_HEADERS = [
 # Configuración de logging para el microservicio
 LOGGING = {
     'version': 1,
-    'disable_existing_loggers': False,
+    'disable_existing_loggers': False,  # muy importante
     'formatters': {
         'verbose': {
             'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
@@ -173,6 +188,11 @@ LOGGING = {
         },
     },
     'handlers': {
+        'console': {
+            'level': 'DEBUG',                         # <- ver todo en consola
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose',
+        },
         'inventory_file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
@@ -181,20 +201,37 @@ LOGGING = {
             'backupCount': 5,
             'formatter': 'verbose',
         },
-        'console': {
-            'level': 'DEBUG',
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
-        },
     },
     'loggers': {
+        # logger para tu microservicio (úsalo en el código con logging.getLogger('authMicroservice'))
+        'authMicroservice': {
+            'handlers': ['console', 'inventory_file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+
+        # mantén también otros loggers si los necesitas
         'inventory_microservice': {
-            'handlers': ['inventory_file', 'console'],
+            'handlers': ['console', 'inventory_file'],
             'level': 'INFO',
-            'propagate': True,
+            'propagate': False,
+        },
+
+        # opcional: controlar django internals si quieres ver más
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': False,
         },
     },
+
+    # root logger: todo lo demás caerá aquí si no tiene logger propio
+    'root': {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+    },
 }
+
 
 # Configurar directorio de logs
 import os
@@ -204,3 +241,8 @@ if not os.path.exists('logs'):
 # Configuración específica del ASR
 ASR_MAX_RESPONSE_TIME_MS = 500
 ASR_CONCURRENT_USERS = 1500
+
+# Configuración de sesiones
+SESSION_COOKIE_AGE = 86400  # 24 horas
+SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
