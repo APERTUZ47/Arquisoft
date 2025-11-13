@@ -120,8 +120,8 @@ class SesionUsuario(models.Model):
 class LogAcceso(models.Model):
     """Modelo para auditoría de accesos"""
     TIPO_CHOICES = [
-        ('LOGIN_EXITOSO', 'Login Exitoso'),
-        ('LOGIN_FALLIDO', 'Login Fallido'),
+        ('REGISTRO_EXITOSO', 'Registro Exitoso'),
+        ('REGISTRO_FALLIDO', 'Registro Fallido'),
         ('LOGOUT', 'Logout'),
         ('REGISTRO', 'Registro'),
         ('CAMBIO_PASSWORD', 'Cambio de Contraseña'),
