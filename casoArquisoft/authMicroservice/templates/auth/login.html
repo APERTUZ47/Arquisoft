@@ -117,7 +117,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🔐 Iniciar Sesión</h1>
+    <h1>� Regístrate</h1>
         
         {% if messages %}
             {% for message in messages %}
@@ -127,7 +127,7 @@
             {% endfor %}
         {% endif %}
         
-        <form method="post" action="{% url 'auth:login' %}">
+    <form method="post" action="{% url 'auth:register' %}">
             {% csrf_token %}
             
             <div class="form-group">
@@ -152,11 +152,11 @@
                 >
             </div>
             
-            <button type="submit">Iniciar Sesión</button>
+            <button type="submit">Crear cuenta</button>
         </form>
         
         <div class="link">
-            ¿No tienes cuenta? <a href="#">Regístrate</a>
+            ¿Ya tienes cuenta? <a href="#">Inicia sesión</a>
         </div>
     </div>
 </body>
