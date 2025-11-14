@@ -246,3 +246,10 @@ ASR_CONCURRENT_USERS = 1500
 SESSION_COOKIE_AGE = 86400  # 24 horas
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
+
+# Configuración Auth0
+AUTH0_DOMAIN = 'dev-v1wpfcpcvvftp5oi.us.auth0.com'
+AUTH0_CLIENT_ID = 'dev-v1wpfcpcvvftp5oi.us.auth0.com'
+AUTH0_CLIENT_SECRET = 'hGFBMMpwdjE6NXU0d6R3NPURIOCxNbdNHBZq8vi-uGkfMr0O99dVtaodwZzZnj-4'
+AUTH0_CALLBACK_URL = 'http://localhost:8000/auth/callback/'  # Cambiar en producción
+AUTH0_SCOPE = 'openid profile email'

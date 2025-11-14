@@ -7,13 +7,15 @@ from mysql.connector import Error
 import time
 from datetime import datetime
 import os
+from authMicroservice.decorators import login_required_simple
 
 # Mecanismo de caché mínimo en memoria para descripciones de objetos
 cache_objetos = {}
 
 
+@login_required_simple
 def inventario_microservicio(request):
-    """Vista para el panel de gestión del microservicio de inventario"""
+    """Vista para el panel de gestión del microservicio de inventario - PROTEGIDA"""
     return render(request, 'consultarRutasBodega/inventario_microservicio.html')
 
 def obtener_conexion_mysql():
