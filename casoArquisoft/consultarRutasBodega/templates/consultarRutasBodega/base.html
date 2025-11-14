@@ -79,7 +79,8 @@
             <a href="{% url 'consultarRutasBodega:consultar_rutas' %}">Ver Objetos</a>
             <a href="{% url 'consultarRutasBodega:buscar_ruta' %}">Buscar Ruta</a>
             <a href="{% url 'consultarRutasBodega:inventario_microservicio' %}" style="background-color: #27ae60;">🏭 Microservicio Inventario</a>
-            <a href="{% url 'auth:register' %}" style="background-color: #8e44ad;">🔐 Registrarse</a>
+            <a href="{% url 'auth:oauth0_login' %}" style="background-color: #EB5424;">🔑 Login con Auth0</a>
+            <a href="{% url 'auth:register' %}" style="background-color: #8e44ad;">📝 Registrarse</a>
         </div>
         
         {% block content %}
